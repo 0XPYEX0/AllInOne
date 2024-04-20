@@ -5,11 +5,12 @@ plugins {
 }
 
 group = 'me.xpyex'
-version = '3.2.0'
+version = '3.2.2'
 
 repositories {
     maven { url 'https://maven.aliyun.com/repository/public' }
     mavenCentral()
+    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
 }
 
 dependencies {

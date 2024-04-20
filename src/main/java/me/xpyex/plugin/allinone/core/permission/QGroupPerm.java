@@ -2,7 +2,7 @@ package me.xpyex.plugin.allinone.core.permission;
 
 import cn.hutool.json.JSONUtil;
 import java.io.File;
-import java.util.ArrayList;
+import java.util.TreeSet;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
@@ -14,9 +14,9 @@ import me.xpyex.plugin.allinone.utils.FileUtil;
 @Accessors(chain = true)
 public class QGroupPerm implements Perms {
     private long groupID;
-    private ArrayList<String> permissions = new ArrayList<>();
-    private ArrayList<String> denyPerms = new ArrayList<>();
-    private ArrayList<String> extendsGroups = new ArrayList<>();  //内容是GroupPerm
+    private TreeSet<String> permissions = new TreeSet<>();
+    private TreeSet<String> denyPerms = new TreeSet<>();
+    private TreeSet<String> extendsGroups = new TreeSet<>();  //内容是GroupPerm
 
     public QGroupPerm(long groupID) {
         this.groupID = groupID;

@@ -11,7 +11,6 @@ import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.ForwardMessageBuilder;
 import net.mamoe.mirai.message.data.Message;
-import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.utils.ExternalResource;
 
@@ -30,7 +29,7 @@ public class MsgUtil {
         //
     }
 
-    public static String getPlainText(MessageChain msg) {
+    public static String getPlainText(Message msg) {
         if (msg == null) return "";
 
         return msg.contentToString();

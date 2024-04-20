@@ -17,7 +17,6 @@ import net.mamoe.mirai.event.SimpleListenerHost;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.utils.MiraiLogger;
 
-
 public class Main extends JavaPlugin {
     public static MiraiLogger LOGGER;
     public static Main INSTANCE;
@@ -42,6 +41,7 @@ public class Main extends JavaPlugin {
 
         for (Class<?> moduleClass : ReflectUtil.getClasses("module")) {
             if (ClassUtil.isAssignable(Module.class, moduleClass)) {
+                if (ClassUtil.isAbstract(moduleClass)) continue;
                 try {
                     moduleClass.getDeclaredConstructor().newInstance();
                 } catch (Throwable e) {

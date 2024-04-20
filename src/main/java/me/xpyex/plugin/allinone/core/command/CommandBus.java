@@ -4,6 +4,7 @@ import cn.hutool.core.lang.Tuple;
 import cn.hutool.core.util.ClassUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
+import me.xpyex.plugin.allinone.core.command.argument.ArgParser;
 import me.xpyex.plugin.allinone.core.mirai.ContactTarget;
 import me.xpyex.plugin.allinone.core.module.Module;
 import me.xpyex.plugin.allinone.utils.ExceptionUtil;
@@ -21,7 +22,7 @@ public class CommandBus {
     }
 
     public static boolean isCmd(Module module, String cmd) {
-        return (COMMAND_LIST.containsKey(cmd.toLowerCase()) && COMMAND_LIST.get(cmd.toLowerCase()).equals(module));
+        return COMMAND_LIST.containsKey(cmd.toLowerCase()) && COMMAND_LIST.get(cmd.toLowerCase()).equals(module);
     }
 
     public static String[] getCommands(Module module) {
@@ -45,7 +46,7 @@ public class CommandBus {
     public static void callCommands(MessageEvent event, String msg) {
         String cmd = msg.split(" ")[0];
         String[] args = msg.substring(cmd.length()).trim().split(" ");
-        if (args.length == 1 && args[0].trim().isEmpty()) {
+        if (args.length == 0 || (args.length == 1 && args[0].trim().isEmpty())) {
             args = new String[0];
         }
         for (Tuple commandBus : COMMAND_BUSES) {
@@ -54,6 +55,7 @@ public class CommandBus {
                 if (module.isEnabled()) {
                     if (isCmd(module, cmd.substring(1))) {
                         Command<Contact> command = commandBus.get(2);
+                        ArgParser.setParseObj(event.getSender());
                         for (String alias : command.aliases()) {
                             if (alias.equalsIgnoreCase(cmd.substring(1))) {
                                 try {

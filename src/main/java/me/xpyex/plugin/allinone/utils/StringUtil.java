@@ -16,8 +16,8 @@ public class StringUtil {
     }
 
     public static boolean containsIgnoreCase(String _string, String _key) {
+        if (_string == null || _key == null) return false;
         return _string.toLowerCase().contains(_key.toLowerCase());
-        //
     }
 
     public static boolean equalsIgnoreCaseOr(String target, String... contents) {

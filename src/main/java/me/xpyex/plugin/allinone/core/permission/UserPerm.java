@@ -2,7 +2,7 @@ package me.xpyex.plugin.allinone.core.permission;
 
 import cn.hutool.json.JSONUtil;
 import java.io.File;
-import java.util.ArrayList;
+import java.util.TreeSet;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
@@ -14,9 +14,9 @@ import me.xpyex.plugin.allinone.utils.FileUtil;
 @Accessors(chain = true)
 public class UserPerm implements Perms {
     private long id;
-    private ArrayList<String> extendsGroups = new ArrayList<>();
-    private ArrayList<String> permissions = new ArrayList<>();
-    private ArrayList<String> denyPerms = new ArrayList<>();
+    private TreeSet<String> extendsGroups = new TreeSet<>();
+    private TreeSet<String> permissions = new TreeSet<>();
+    private TreeSet<String> denyPerms = new TreeSet<>();
     private boolean hasAllPerms = false;
 
     public UserPerm(long id) {

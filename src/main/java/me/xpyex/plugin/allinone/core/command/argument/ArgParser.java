@@ -1,0 +1,58 @@
+package me.xpyex.plugin.allinone.core.command.argument;
+
+import java.util.HashMap;
+import java.util.Optional;
+import me.xpyex.plugin.allinone.api.TryCallable;
+
+public abstract class ArgParser {
+    protected static final HashMap<Class<? extends ArgParser>, ArgParser> PARSERS = new HashMap<>();
+    private static Object parseObj;
+
+    protected ArgParser() {
+        PARSERS.put(this.getClass(), this);
+        //
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends ArgParser> T of(Class<T> clazz) {
+        try {
+            return (T) PARSERS.getOrDefault(clazz, clazz.getConstructor().newInstance());
+        } catch (ReflectiveOperationException e) {
+            throw new UnsupportedOperationException("无法构建Parser实例", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getParseObj() {
+        return (T) parseObj;
+        //
+    }
+
+    public static void setParseObj(Object parseObj) {
+        ArgParser.parseObj = parseObj;
+        //
+    }
+
+    public abstract Optional<?> parse(String arg);
+
+    public Optional<?> parse(TryCallable<String> callable) {
+        try {
+            return parse(callable.call());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> parse(TryCallable<String> callable, Class<T> clazz) {
+        return ((Optional<T>) parse(callable));
+        //
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> parse(String arg, Class<T> clazz) {
+        return (Optional<T>) parse(arg);
+        //
+    }
+}

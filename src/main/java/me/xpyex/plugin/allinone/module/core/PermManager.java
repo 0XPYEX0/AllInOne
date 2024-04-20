@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.WeakHashMap;
 import lombok.SneakyThrows;
 import me.xpyex.plugin.allinone.api.CommandMenu;
+import me.xpyex.plugin.allinone.core.command.argument.ArgParser;
+import me.xpyex.plugin.allinone.core.command.argument.GroupParser;
+import me.xpyex.plugin.allinone.core.command.argument.UserParser;
 import me.xpyex.plugin.allinone.core.module.CoreModule;
 import me.xpyex.plugin.allinone.core.permission.GroupPerm;
 import me.xpyex.plugin.allinone.core.permission.Perms;
@@ -13,8 +16,9 @@ import me.xpyex.plugin.allinone.core.permission.QGroupPerm;
 import me.xpyex.plugin.allinone.core.permission.UserPerm;
 import me.xpyex.plugin.allinone.utils.FileUtil;
 import net.mamoe.mirai.contact.Contact;
+import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.MemberPermission;
-import net.mamoe.mirai.contact.NormalMember;
 import net.mamoe.mirai.contact.User;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,15 +40,15 @@ public class PermManager extends CoreModule {
             return false;
         }
         perm = perm.toLowerCase();
-        if (adminPass != null && user instanceof NormalMember && ((NormalMember) user).getPermission().getLevel() >= adminPass.getLevel()) {
+        if (adminPass != null && user instanceof Member && ((Member) user).getPermission().getLevel() >= adminPass.getLevel()) {
             return true;
         }
-        if (user instanceof NormalMember) {
-            QGroupPerm qGroupPerm = getQGroupPerm(((NormalMember) user).getGroup().getId());
-            if (Perms.getLowerCaseList(qGroupPerm.getDenyPerms()).contains(perm)) {
+        if (user instanceof Member) {
+            QGroupPerm qGroupPerm = getQGroupPerm(((Member) user).getGroup().getId());
+            if (Perms.getLowerCaseSet(qGroupPerm.getDenyPerms()).contains(perm)) {
                 return false;
             }
-            if (Perms.getLowerCaseList(qGroupPerm.getPermissions()).contains(perm)) {
+            if (Perms.getLowerCaseSet(qGroupPerm.getPermissions()).contains(perm)) {
                 return true;
             }
             for (String groupName : qGroupPerm.getExtendsGroups()) {
@@ -71,6 +75,14 @@ public class PermManager extends CoreModule {
                 }
             }
         }
+        return false;
+    }
+
+    public static boolean hasPerm(Group group, String perm) {
+        if (group == null || perm == null || perm.isEmpty()) {
+            return false;
+        }
+        perm = perm.toLowerCase();
         return false;
     }
 
@@ -148,15 +160,15 @@ public class PermManager extends CoreModule {
                     .send(source);
                 return;
             }
-            if (args[0].equalsIgnoreCase("set")) {
+            if ("set".equalsIgnoreCase(args[0])) {
                 if (args.length < 5) {
                     source.sendMessage("参数不足");
                     return;
                 }
                 String type;
-                if (args[1].equalsIgnoreCase("group")) {
+                if ("group".equalsIgnoreCase(args[1])) {
                     type = "组";
-                } else if (args[1].equalsIgnoreCase("user")) {
+                } else if ("user".equalsIgnoreCase(args[1])) {
                     type = "用户";
                 } else if ("qGroup".equalsIgnoreCase(args[1])) {
                     type = "群";
@@ -169,8 +181,8 @@ public class PermManager extends CoreModule {
                 int state = Integer.parseInt(args[4]);
                 Perms permInstance = switch (type) {
                     case "组" -> GROUPS.get(id);
-                    case "用户" -> getUserPerm(Long.parseLong(id));
-                    case "群" -> getQGroupPerm(Long.parseLong(id));
+                    case "用户" -> getUserPerm(ArgParser.of(UserParser.class).parse(id, User.class).get().getId());
+                    case "群" -> getQGroupPerm(ArgParser.of(GroupParser.class).parse(id, Group.class).get().getId());
                     default -> null;
                 };
                 if (permInstance == null) {
@@ -178,9 +190,9 @@ public class PermManager extends CoreModule {
                     return;
                 }
                 if (switch (state) {
-                    case -1 -> permInstance.getPermissions().remove(perm) && permInstance.getDenyPerms().add(perm);
-                    case 0 -> permInstance.getDenyPerms().remove(perm) || permInstance.getPermissions().remove(perm);
-                    case 1 -> permInstance.getPermissions().add(perm) && permInstance.getDenyPerms().remove(perm);
+                    case -1 -> permInstance.getPermissions().remove(perm) | permInstance.getDenyPerms().add(perm);
+                    case 0 -> permInstance.getDenyPerms().remove(perm) | permInstance.getPermissions().remove(perm);
+                    case 1 -> permInstance.getPermissions().add(perm) | permInstance.getDenyPerms().remove(perm);
                     default -> false;
                 }) {
                     permInstance.save();
@@ -188,7 +200,7 @@ public class PermManager extends CoreModule {
                 } else {
                     source.sendMessage("设置 <" + type + " " + id + "> 的权限 <" + perm + "> 失败: 无变化");
                 }
-            } else if (args[0].equalsIgnoreCase("setAll")) {
+            } else if ("setAll".equalsIgnoreCase(args[0])) {
                 if (sender.hasPerm(getName() + ".setOp")) {
                     source.sendMessage("你没有权限");
                     return;
@@ -201,10 +213,10 @@ public class PermManager extends CoreModule {
                 boolean newState = Boolean.parseBoolean(args[2]);
                 getUserPerm(id).setHasAllPerms(newState).save();
                 source.sendMessage("已赋予 " + id + " 所有权限");
-            } else if (args[0].equalsIgnoreCase("reload")) {
+            } else if ("reload".equalsIgnoreCase(args[0])) {
                 reload();
                 source.sendMessage("尝试重载");
-            } else if (args[0].equalsIgnoreCase("newGroup")) {
+            } else if ("newGroup".equalsIgnoreCase(args[0])) {
                 if (args.length < 3) {
                     source.sendMessage("参数不足");
                     return;

@@ -6,16 +6,17 @@ import me.xpyex.plugin.allinone.module.core.PermManager;
 import me.xpyex.plugin.allinone.utils.MsgUtil;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.MemberPermission;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.message.data.Message;
 
 public class ContactTarget<C extends Contact> {
-    //
     @Getter
     private final C contact;
+
     private final WeakHashMap<String, Boolean> PERM_CACHE = new WeakHashMap<>();
-    //
+
     @Getter
     private final long createdTime = System.currentTimeMillis();
 
@@ -65,13 +66,21 @@ public class ContactTarget<C extends Contact> {
         if (isGroup()) {
             return (Group) this.getContact();
         }
-        throw new UnsupportedOperationException("其中的对象不是Group");
+        throw new ClassCastException("其中的对象不是Group");
     }
 
     public User getContactAsUser() {
         if (getContact() instanceof User) {
             return (User) getContact();
         }
-        throw new UnsupportedOperationException("其中的对象不是User");
+        throw new ClassCastException("其中的对象不是User");
+    }
+
+    public Member getContactAsMember() {
+        //
+        if (getContact() instanceof Member) {
+            return (Member) getContact();
+        }
+        throw new ClassCastException("其中的对象不是Member");
     }
 }
