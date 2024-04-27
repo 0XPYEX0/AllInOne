@@ -71,11 +71,11 @@ public class MsgUtil {
         if (contact == null || msg == null) {
             return;
         }
-        if (contact instanceof Group) {
-            if (((Group) contact).getSettings().isMuteAll() && ((Group) contact).getBotPermission() == MemberPermission.MEMBER) {
+        if (contact instanceof Group group) {
+            if (group.getSettings().isMuteAll() && group.getBotPermission() == MemberPermission.MEMBER) {
                 return;
             }
-            if (((Group) contact).getBotAsMember().isMuted()) {
+            if (group.getBotAsMember().isMuted()) {
                 return;
             }
         }

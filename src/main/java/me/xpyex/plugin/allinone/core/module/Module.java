@@ -61,7 +61,7 @@ public abstract class Module {
     protected boolean DEFAULT_DISABLED = false;
 
     protected Module() {
-        Main.LOGGER.info("正在加载 " + getName() + " 模块");
+        getLogger().info("正在加载 " + getName() + " 模块");
 
         ValueUtil.mustTrue("模块名不应为空", !getName().trim().isEmpty());
         ValueUtil.mustTrue("已存在使用该名称的模块，不允许重复注册", LOADED_MODELS.get(getName()) == null);
@@ -147,6 +147,16 @@ public abstract class Module {
 
     public final void info(Throwable e) {
         getLogger().info("[" + getName() + "]", e);
+        //
+    }
+
+    public final <T> T debug(T obj) {
+        getLogger().debug("[" + getName() + "] " + obj);
+        return obj;
+    }
+
+    public final void debug(Throwable e) {
+        getLogger().debug("[" + getName() + "]", e);
         //
     }
 
@@ -282,7 +292,7 @@ public abstract class Module {
         getBot().getFriend(Util.OWNER_ID).sendMessage(msg);
     }
 
-    public final MiraiLogger getLogger() {
+    private final MiraiLogger getLogger() {
         return Main.LOGGER;
         //
     }

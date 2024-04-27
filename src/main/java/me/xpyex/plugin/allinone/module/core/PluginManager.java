@@ -10,7 +10,6 @@ import me.xpyex.plugin.allinone.core.command.argument.ModuleParser;
 import me.xpyex.plugin.allinone.core.event.EventBus;
 import me.xpyex.plugin.allinone.core.module.CoreModule;
 import me.xpyex.plugin.allinone.core.module.Module;
-import me.xpyex.plugin.allinone.utils.MsgUtil;
 import me.xpyex.plugin.allinone.utils.StringUtil;
 import net.mamoe.mirai.contact.Contact;
 
@@ -32,35 +31,35 @@ public class PluginManager extends CoreModule {
                         .parse(() -> args[1], Module.class)
                         .ifPresentOrElse(module -> {
                             if (module.isCore()) {
-                                MsgUtil.sendMsg(source, "不允许操作核心模块");
+                                source.sendMessage("不允许操作核心模块");
                                 return;
                             }
                             String mode = "enable".equalsIgnoreCase(args[1]) ? "启用" : "禁用";
                             if ("enable".equalsIgnoreCase(args[1]) ? module.enable() : module.disable()) {
-                                MsgUtil.sendMsg(source, "已" + mode + " " + module.getName() + " 模块");
+                                source.sendMessage("已" + mode + " " + module.getName() + " 模块");
                             } else {
-                                MsgUtil.sendMsg(source, "模块 " + module.getName() + " 已被" + mode + "，无需重复" + mode);
+                                source.sendMessage("模块 " + module.getName() + " 已被" + mode + "，无需重复" + mode);
                             }
-                        }, () -> MsgUtil.sendMsg(source, "模块不存在\n执行 #" + label + " list 查看所有列表"));
+                        }, () -> source.sendMessage("模块不存在\n执行 #" + label + " list 查看所有列表"));
                 } else if ("list".equalsIgnoreCase(args[0])) {
                     TreeSet<String> list = new TreeSet<>();
                     for (Module loadedModule : Module.LOADED_MODELS.values()) {
                         list.add(loadedModule.getName() + (loadedModule.isDisabled() ? "(未启用)" : ""));
                     }
-                    MsgUtil.sendMsg(source, "所有模块列表: " + list);
+                    source.sendMessage("所有模块列表: " + list);
                 } else if ("info".equalsIgnoreCase(args[0])) {
                     ArgParser.of(ModuleParser.class).parse(() -> args[1], Module.class)
                         .ifPresentOrElse(module -> new MessageBuilder("模块 " + module.getName())
                                                        .plus("是否禁用: " + module.isDisabled())
                                                        .plus("已注册的命令: " + Arrays.toString(CommandBus.getCommands(module)))
                                                        .plus("监听的事件: " + Arrays.toString(EventBus.getEvents(module)))
-                                                       .send(source)
-                            , () -> source.sendMessage("模块不存在\n执行 #" + label + " list 查看所有列表"));
+                                                       .send(source),
+                            () -> source.sendMessage("模块不存在\n执行 #" + label + " list 查看所有列表"));
                 } else {
-                    MsgUtil.sendMsg(source, "未知子命令");
+                    source.sendMessage("未知子命令");
                 }
             } else {
-                MsgUtil.sendMsg(source, "你没有权限");
+                source.sendMessage("你没有权限");
             }
         }), "pl", "plugin", "module");
     }

@@ -16,6 +16,10 @@ import java.util.Optional;
 import java.util.Set;
 import me.xpyex.plugin.allinone.api.CommandMenu;
 import me.xpyex.plugin.allinone.api.MessageBuilder;
+import me.xpyex.plugin.allinone.core.command.argument.ArgParser;
+import me.xpyex.plugin.allinone.core.command.argument.GroupParser;
+import me.xpyex.plugin.allinone.core.command.argument.StrParser;
+import me.xpyex.plugin.allinone.core.command.argument.UserParser;
 import me.xpyex.plugin.allinone.core.module.Module;
 import me.xpyex.plugin.allinone.modulecode.git.GitInfo;
 import me.xpyex.plugin.allinone.modulecode.git.ReleasesUpdate;
@@ -23,6 +27,7 @@ import me.xpyex.plugin.allinone.utils.FileUtil;
 import me.xpyex.plugin.allinone.utils.MsgUtil;
 import me.xpyex.plugin.allinone.utils.Util;
 import net.mamoe.mirai.contact.Contact;
+import net.mamoe.mirai.contact.Friend;
 import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.MemberPermission;
 import net.mamoe.mirai.message.data.ForwardMessageBuilder;
@@ -49,7 +54,8 @@ public class GitUpdates extends Module {
             }
             if (args.length == 0) {
                 new CommandMenu(label)
-                    .add("add <GitHub|Gitee> <Owner/RepoName>", "订阅指定Git平台的仓库，push|发布releases时推送")
+                    .add("add <GitHub|Gitee> <Owner/RepoName>", "订阅指定Git平台的仓库，发布releases时推送")
+                    .add("remove <Owner/RepoName>", "解除订阅")
                     .send(source);
                 return;
             }
@@ -84,13 +90,56 @@ public class GitUpdates extends Module {
                 }
                 source.sendMessage("无效的仓库类型");
             }
+            if ("remove".equalsIgnoreCase(args[0])) {
+                ArgParser.of(StrParser.class).parse(() -> args[1])
+                    .ifPresentOrElse(path -> {
+                        boolean[] result = {false};
+                        ReleasesUpdate.getInstance().getUsers().forEach((ID, info) -> {
+                            if (result[0]) return;
+                            for (GitInfo gitInfo : info) {
+                                if (gitInfo.getRepo().equals(path)) {
+                                    runTaskLater(() -> {
+                                        ReleasesUpdate.getInstance().getUsers().get(ID).remove(gitInfo);
+                                    }, 1);
+                                    result[0] = true;
+                                    return;
+                                }
+                            }
+                        });
+                        ReleasesUpdate.getInstance().getGroups().forEach((ID, info) -> {
+                            if (result[0]) return;
+                            for (GitInfo gitInfo : info) {
+                                if (gitInfo.getRepo().equals(path)) {
+                                    runTaskLater(() -> {
+                                        ReleasesUpdate.getInstance().getGroups().get(ID).remove(gitInfo);
+                                    }, 1);
+                                    result[0] = true;
+                                    return;
+                                }
+                            }
+                        });
+                        source.sendMessage(result[0] ? "已解除订阅" : "未订阅该Repo");
+                    }, () -> source.sendMessage("参数不足"));
+            }
         }, "updates", "gitUpdates", "git", "repo");
         runTaskTimer(this::checkUpdate, 25 * 60L, 60L);
     }
 
     private void checkUpdate() throws IOException {
         HashMap<String, String> repoURLs = new HashMap<>();  //Repo, URL
-        ReleasesUpdate.getInstance().getGroups().forEach((ID, URLs) -> {
+        ReleasesUpdate.getInstance().getGroups().values().forEach(URLs -> {
+            URLs.forEach(info -> {
+                switch (info.getType()) {
+                    case Gitee:
+                        repoURLs.put(info.getRepo(), "https://gitee.com/api/v5/repos/" + info.getRepo() + "/releases/latest");
+                        break;
+                    case GitHub:
+                        repoURLs.put(info.getRepo(), "https://api.github.com/repos/" + info.getRepo() + "/releases/latest");
+                        break;
+                }
+            });
+        });
+        ReleasesUpdate.getInstance().getUsers().values().forEach(URLs -> {
             URLs.forEach(info -> {
                 switch (info.getType()) {
                     case Gitee:
@@ -115,7 +164,7 @@ public class GitUpdates extends Module {
 
         HashMap<Contact, ArrayList<String>> contacts = new HashMap<>();  //Contact, Repo
         ReleasesUpdate.getInstance().getGroups().forEach((ID, URLs) -> {
-            Optional.ofNullable(Util.getBot().getGroup(ID)).ifPresent(group -> {
+            ArgParser.of(GroupParser.class).parse(ID + "", Group.class).ifPresent(group -> {
                 for (GitInfo info : URLs) {
                     if (!contacts.containsKey(group)) {
                         contacts.put(group, new ArrayList<>());
@@ -125,7 +174,7 @@ public class GitUpdates extends Module {
             });
         });
         ReleasesUpdate.getInstance().getUsers().forEach((ID, URLs) -> {
-            Optional.ofNullable(Util.getBot().getFriend(ID)).ifPresent(friend -> {
+            ArgParser.of(UserParser.class).parse(ID + "", Friend.class).ifPresent(friend -> {
                 for (GitInfo info : URLs) {
                     if (!contacts.containsKey(friend)) {
                         contacts.put(friend, new ArrayList<>());

@@ -1,6 +1,5 @@
 package me.xpyex.plugin.allinone.module;
 
-import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONNull;
@@ -8,8 +7,9 @@ import cn.hutool.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.WeakHashMap;
 import me.xpyex.plugin.allinone.api.CommandMenu;
@@ -21,7 +21,6 @@ import me.xpyex.plugin.allinone.core.command.argument.StrParser;
 import me.xpyex.plugin.allinone.core.mirai.ContactTarget;
 import me.xpyex.plugin.allinone.core.module.Module;
 import me.xpyex.plugin.allinone.modulecode.chatgpt.ChatMessage;
-import me.xpyex.plugin.allinone.utils.MsgUtil;
 import me.xpyex.plugin.allinone.utils.StringUtil;
 import me.xpyex.plugin.allinone.utils.Util;
 import me.xpyex.plugin.allinone.utils.ValueUtil;
@@ -76,12 +75,9 @@ public final class ChatGPT extends Module {
                         return;
                     }
                     ArgParser.of(GroupParser.class).parse(() -> args[1], Group.class).ifPresentOrElse(group -> {
-                        ArrayList<String> msg = ListUtil.toList(args);
-                        msg.remove(0); //第一个arg是groupRules
-                        msg.remove(0); //第二个arg是群号
-                        ArgParser.of(StrParser.class).parse(() -> String.join(" ", msg), String.class).ifPresentOrElse(rule -> {
+                        ArgParser.of(StrParser.class).parse(() -> String.join(" ", Arrays.copyOfRange(args, 2, args.length)), String.class).ifPresentOrElse(rule -> {
                             try {
-                                Files.writeString(new File(getDataFolder(), group.getId() + ".txt").toPath(), rule);
+                                Files.writeString(new File(getDataFolder(), group.getId() + ".txt").toPath(), rule, StandardCharsets.UTF_8);
                                 GROUP_RULES.put(group.getId(), rule);
                                 source.sendMessage("已保存规则");
                             } catch (IOException e) {
@@ -111,14 +107,12 @@ public final class ChatGPT extends Module {
                     ValueUtil.ifNull(CHAT_CACHE.get(sender.getId()), () -> {  //若还没有聊过天，则新建缓存
                         CHAT_CACHE.put(sender.getId(), ChatMessage.of(ChatMessage.Role.SYSTEM, GROUP_RULES.getOrDefault(source.getId(), DEFAULT_MSG)));
                     });
-                    ArrayList<String> msg = ListUtil.toList(args);
-                    msg.remove(0); //移除talk这个arg
-                    String userMsg = String.join(" ", msg);  //拼接剩下的参数
+                    String userMsg = String.join(" ", Arrays.copyOfRange(args, 1, args.length));  //拼接除了talk以外剩下的参数
 
                     ChatMessage chatMessage = CHAT_CACHE.get(sender.getId());  //获取其缓存
                     chatMessage.plus(ChatMessage.Role.USER, userMsg);
 
-                    ForwardMessageBuilder builder = MsgUtil.getForwardMsgBuilder(sender.getContact());
+                    ForwardMessageBuilder builder = new ForwardMessageBuilder(source.getContact());
                     for (int i = 1; i < chatMessage.getMessage().size(); i++) {
                         JSONObject obj = chatMessage.getMessage().getJSONObject(i);
                         builder.add("user".equalsIgnoreCase(obj.getStr("role")) ? sender.getContact() : Util.getBot(), new PlainText(obj.getStr("content")));
@@ -144,7 +138,7 @@ public final class ChatGPT extends Module {
                     ChatMessage chatMessage = CHAT_CACHE.get(sender.getId());  //获取其缓存
                     chatMessage.getMessage().remove(chatMessage.getMessage().size() - 1);  //清除最终的缓存
 
-                    ForwardMessageBuilder builder = MsgUtil.getForwardMsgBuilder(sender.getContact());
+                    ForwardMessageBuilder builder = new ForwardMessageBuilder(source.getContact());
                     for (int i = 1; i < chatMessage.getMessage().size(); i++) {
                         JSONObject obj = chatMessage.getMessage().getJSONObject(i);
                         builder.add("user".equalsIgnoreCase(obj.getStr("role")) ? sender.getContact() : Util.getBot(), new PlainText(obj.getStr("content")));

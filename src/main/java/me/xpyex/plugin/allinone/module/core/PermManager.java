@@ -181,8 +181,8 @@ public class PermManager extends CoreModule {
                 int state = Integer.parseInt(args[4]);
                 Perms permInstance = switch (type) {
                     case "组" -> GROUPS.get(id);
-                    case "用户" -> getUserPerm(ArgParser.of(UserParser.class).parse(id, User.class).get().getId());
-                    case "群" -> getQGroupPerm(ArgParser.of(GroupParser.class).parse(id, Group.class).get().getId());
+                    case "用户" -> getUserPerm(ArgParser.of(UserParser.class).getParsedId(id));
+                    case "群" -> getQGroupPerm(ArgParser.of(GroupParser.class).getParsedId(id));
                     default -> null;
                 };
                 if (permInstance == null) {

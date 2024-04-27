@@ -9,10 +9,12 @@ import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.NormalMember;
 import net.mamoe.mirai.contact.Stranger;
 import net.mamoe.mirai.contact.User;
+import org.jetbrains.annotations.NotNull;
 
-public class UserParser extends ArgParser {
+public class UserParser extends ContactParser {
     private static final WeakHashMap<Long, User> CACHE = new WeakHashMap<>();
 
+    @NotNull
     public Optional<?> parse(String arg) {
         String strID = arg.replaceAll("[^0-9]", "");
         if (strID.isEmpty()) return Optional.empty();

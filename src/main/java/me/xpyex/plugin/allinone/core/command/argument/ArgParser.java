@@ -2,11 +2,13 @@ package me.xpyex.plugin.allinone.core.command.argument;
 
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import me.xpyex.plugin.allinone.api.TryCallable;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class ArgParser {
     protected static final HashMap<Class<? extends ArgParser>, ArgParser> PARSERS = new HashMap<>();
-    private static Object parseObj;
+    private static final AtomicReference<Object> parseObj = new AtomicReference<>();
 
     protected ArgParser() {
         PARSERS.put(this.getClass(), this);
@@ -24,17 +26,19 @@ public abstract class ArgParser {
 
     @SuppressWarnings("unchecked")
     public static <T> T getParseObj() {
-        return (T) parseObj;
+        return (T) parseObj.get();
         //
     }
 
     public static void setParseObj(Object parseObj) {
-        ArgParser.parseObj = parseObj;
+        ArgParser.parseObj.set(parseObj);
         //
     }
 
+    @NotNull
     public abstract Optional<?> parse(String arg);
 
+    @NotNull
     public Optional<?> parse(TryCallable<String> callable) {
         try {
             return parse(callable.call());
@@ -44,15 +48,23 @@ public abstract class ArgParser {
         }
     }
 
+    @NotNull
     @SuppressWarnings("unchecked")
     public <T> Optional<T> parse(TryCallable<String> callable, Class<T> clazz) {
-        return ((Optional<T>) parse(callable));
-        //
+        try {
+            return (Optional<T>) parse(callable);
+        } catch (ClassCastException ignored) {
+            return Optional.empty();
+        }
     }
 
+    @NotNull
     @SuppressWarnings("unchecked")
     public <T> Optional<T> parse(String arg, Class<T> clazz) {
-        return (Optional<T>) parse(arg);
-        //
+        try {
+            return (Optional<T>) parse(arg);
+        } catch (ClassCastException ignored) {
+            return Optional.empty();
+        }
     }
 }

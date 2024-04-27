@@ -91,14 +91,14 @@ public class Music extends Module {
                 try {
                     mi = mc.get(sn);
                 } catch (Throwable t) {
-                    this.getLogger().debug(t);
+                    debug(t);
                     MsgUtil.sendMsg(contact, "无法找到歌曲");
                     return;
                 }
                 try {
                     MsgUtil.sendMsg(contact, cb.process(mi, contact));
                 } catch (Throwable t) {
-                    this.getLogger().debug(t);
+                    debug(t);
                     MsgUtil.sendMsg(contact, "无效的分享");
                 }
             });
@@ -124,13 +124,13 @@ public class Music extends Module {
                     try {
                         mi = mc.get(sn);
                     } catch (Throwable t) {
-                        this.getLogger().debug(t);
+                        debug(t);
                         continue;
                     }
                     try {
                         MsgUtil.sendMsg(contact, cb.process(mi, contact));
                     } catch (Throwable t) {
-                        this.getLogger().debug(t);
+                        debug(t);
                         MsgUtil.sendMsg(contact, "无效的分享");
                     }
                     return;
