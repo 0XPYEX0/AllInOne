@@ -15,8 +15,8 @@ import me.xpyex.plugin.allinone.core.permission.Perms;
 import me.xpyex.plugin.allinone.core.permission.QGroupPerm;
 import me.xpyex.plugin.allinone.core.permission.UserPerm;
 import me.xpyex.plugin.allinone.utils.FileUtil;
+import me.xpyex.plugin.allinone.utils.StringUtil;
 import net.mamoe.mirai.contact.Contact;
-import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.MemberPermission;
 import net.mamoe.mirai.contact.User;
@@ -29,11 +29,6 @@ public class PermManager extends CoreModule {
     private static File GROUPS_FOLDER;
     private static File USERS_FOLDER;
     private static File QQ_GROUPS_FOLDER;
-
-    public static boolean hasPerm(User user, String perm) {
-        return hasPerm(user, perm, null);
-        //
-    }
 
     public static boolean hasPerm(User user, String perm, @Nullable MemberPermission adminPass) {
         if (user == null || perm == null || perm.isEmpty()) {
@@ -59,7 +54,11 @@ public class PermManager extends CoreModule {
                 }
             }
         }
-        UserPerm userPerm = getUserPerm(user.getId());
+        return hasPerm(user.getId(), perm);
+    }
+
+    public static boolean hasPerm(long id, String perm) {
+        UserPerm userPerm = getUserPerm(id);
         if (userPerm.getDenyPerms().contains(perm)) {
             return false;
         }
@@ -75,14 +74,6 @@ public class PermManager extends CoreModule {
                 }
             }
         }
-        return false;
-    }
-
-    public static boolean hasPerm(Group group, String perm) {
-        if (group == null || perm == null || perm.isEmpty()) {
-            return false;
-        }
-        perm = perm.toLowerCase();
         return false;
     }
 
@@ -110,11 +101,6 @@ public class PermManager extends CoreModule {
             }
         }
         return QQ_GROUPS.get(id);
-    }
-
-    public static boolean hasPerm(GroupPerm group, String perm) {
-        return (group.getPermissions().contains(perm)) && !group.getDenyPerms().contains(perm);
-        //
     }
 
     public void reload() {
@@ -200,8 +186,8 @@ public class PermManager extends CoreModule {
                 } else {
                     source.sendMessage("设置 <" + type + " " + id + "> 的权限 <" + perm + "> 失败: 无变化");
                 }
-            } else if ("setAll".equalsIgnoreCase(args[0])) {
-                if (sender.hasPerm(getName() + ".setOp")) {
+            } else if (StringUtil.equalsIgnoreCaseOr(args[0], "setAll", "op")) {
+                if (!sender.hasPerm(getName() + ".setOp")) {
                     source.sendMessage("你没有权限");
                     return;
                 }
@@ -210,9 +196,9 @@ public class PermManager extends CoreModule {
                     return;
                 }
                 long id = Long.parseLong(args[1]);
-                boolean newState = Boolean.parseBoolean(args[2]);
+                boolean newState = "true".equalsIgnoreCase(args[2]);
                 getUserPerm(id).setHasAllPerms(newState).save();
-                source.sendMessage("已赋予 " + id + " 所有权限");
+                source.sendMessage("已设定 " + id + " 管理员权限为 " + newState);
             } else if ("reload".equalsIgnoreCase(args[0])) {
                 reload();
                 source.sendMessage("尝试重载");
@@ -221,42 +207,15 @@ public class PermManager extends CoreModule {
                     source.sendMessage("参数不足");
                     return;
                 }
-                boolean isDefault = Boolean.parseBoolean(args[2]);
                 File f = new File(GROUPS_FOLDER, args[1] + ".json");
                 if (f.exists()) {
                     source.sendMessage("已存在同名权限组: " + args[1]);
                     return;
                 }
-                FileUtil.writeFile(f, JSONUtil.toJsonPrettyStr(new GroupPerm(args[1]).setDefaultGroup(isDefault)));
+                FileUtil.writeFile(f, JSONUtil.toJsonPrettyStr(new GroupPerm(args[1]).setDefaultGroup("true".equalsIgnoreCase(args[2]))));
                 reload();
                 source.sendMessage("成功创建组: " + args[1]);
             }
         }, "permission", "permissions", "perm", "perms");
-
-        registerCommand(Contact.class, (source, sender, label, args) -> {
-            if (!sender.hasPerm(getName() + ".setOp")) {
-                source.sendMessage("你没有权限");
-                return;
-            }
-            if (args.length == 0) {
-                new CommandMenu(label)
-                    .add("set <ID>", "给予用户管理员权限")
-                    .add("unset <ID>", "剥夺用户管理员权限")
-                    .send(source);
-                return;
-            }
-            boolean argIsSet = "set".equalsIgnoreCase(args[0]);
-            if (argIsSet || "unset".equalsIgnoreCase(args[0])) {
-                try {
-                    long id = Long.parseLong(args[1]);
-                    getUserPerm(id).setHasAllPerms(argIsSet).save();
-                    source.sendMessage("将 " + id + " 的管理员权限设为 " + argIsSet);
-                } catch (ArrayIndexOutOfBoundsException | NumberFormatException ignored) {
-                    source.sendMessage("无效的对象");
-                }
-            } else {
-                source.sendMessage("未知的命令参数");
-            }
-        }, "op");
     }
 }

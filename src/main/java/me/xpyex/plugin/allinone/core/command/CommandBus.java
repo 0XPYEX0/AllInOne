@@ -62,6 +62,9 @@ public class CommandBus {
      * @param args    命令参数
      */
     public static void dispatchCommand(ContactTarget<Contact> contact, ContactTarget<User> sender, String cmd, String... args) {
+        if (!cmd.startsWith("#")) {
+            cmd = "#" + cmd;
+        }
         for (Tuple commandBus : COMMAND_BUSES) {
             if (ClassUtil.isAssignable(commandBus.get(0), contact.getContact().getClass())) {
                 Module module = commandBus.get(1);

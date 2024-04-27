@@ -102,8 +102,12 @@ public abstract class Module {
 
     @NotNull
     public static <M extends Module> M getModule(Class<M> clazz) {
-        return getModule(clazz.getSimpleName());
-        //
+        if (clazz == null) throw new IllegalArgumentException("参数为null");
+        if (!clazz.isAssignableFrom(Module.class)) throw new IllegalArgumentException("参数不是Module的子类");
+        if (clazz.equals(Module.class)) throw new IllegalArgumentException("参数不能是Module类本身");
+        M module = getModule(clazz.getSimpleName());
+        assert module != null;
+        return module;
     }
 
     public abstract void register() throws Throwable;

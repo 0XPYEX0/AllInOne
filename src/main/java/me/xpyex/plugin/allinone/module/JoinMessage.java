@@ -13,9 +13,10 @@ import net.mamoe.mirai.utils.ExternalResource;
 
 @SuppressWarnings("unused")
 public class JoinMessage extends Module {
-    public static final File IMAGE_HOW_TO_ASK_FILE = new File("pictures/提问の艺术.png");
-    public static final File IMAGE_DONT_FLY_FILE = new File("pictures/一步登天.png");
+    private static final File IMAGE_HOW_TO_ASK_FILE = new File("pictures/提问の艺术.png");
+    private static final File IMAGE_DONT_FLY_FILE = new File("pictures/一步登天.png");
     private static final File IMAGE_NEW_MEMBER_FILE = new File("pictures/地位-1.jpg");
+    private static final Random RANDOM = new Random();
 
     @Override
     public void register() {
@@ -48,7 +49,7 @@ public class JoinMessage extends Module {
                             )
                             .build()
                     );
-                }, new Random().nextInt(10));
+                }, RANDOM.nextInt(15));
             }
         });
     }
