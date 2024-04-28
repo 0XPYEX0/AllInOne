@@ -7,6 +7,10 @@ import net.mamoe.mirai.contact.MemberPermission;
 
 @SuppressWarnings("unused")
 public class SetNameCard extends Module {
+    private SetNameCard() {
+        this.DEFAULT_DISABLED = true;
+    }
+
     @Override
     public void register() {
         registerCommand(Group.class, ((source, sender, label, args) -> {
@@ -21,6 +25,5 @@ public class SetNameCard extends Module {
             source.getContact().getBotAsMember().setNameCard(String.join(" ", args));
             MsgUtil.sendMsg(source, "已修改");
         }), "setNameCard", "nameCard");
-        DEFAULT_DISABLED = true;
     }
 }

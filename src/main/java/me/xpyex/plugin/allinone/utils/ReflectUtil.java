@@ -15,7 +15,7 @@ public class ReflectUtil {
     public static List<Class<?>> getClasses(String packagePath) {
         List<Class<?>> classList = new ArrayList<>();
         for (File file : PLUGIN_FOLDER.listFiles()) {
-            if (file.getName().endsWith(".jar")) {
+            if (file.isFile() && file.getName().endsWith(".jar")) {
                 try (JarFile jar = new JarFile(file)) {
                     Enumeration<JarEntry> enumFiles = jar.entries();
                     while (enumFiles.hasMoreElements()) {

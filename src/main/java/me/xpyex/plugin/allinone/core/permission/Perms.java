@@ -1,19 +1,19 @@
 package me.xpyex.plugin.allinone.core.permission;
 
-import java.util.ArrayList;
+import java.util.TreeSet;
 
 public interface Perms {
-    static ArrayList<String> getLowerCaseList(ArrayList<String> list) {
-        ArrayList<String> newOne = new ArrayList<>();
-        for (String s : list) {
+    static TreeSet<String> getLowerCaseSet(TreeSet<String> set) {
+        TreeSet<String> newOne = new TreeSet<>();
+        for (String s : set) {
             newOne.add(s.toLowerCase());
         }
         return newOne;
     }
 
-    ArrayList<String> getPermissions();
+    TreeSet<String> getPermissions();
 
-    ArrayList<String> getDenyPerms();
+    TreeSet<String> getDenyPerms();
 
     void save();
 }

@@ -56,11 +56,12 @@ public abstract class Module {
     public static final HashMap<String, Module> LOADED_MODELS = new HashMap<>();
     private static final HashSet<Module> DISABLED_MODULES = new HashSet<>();  //使用HashSet是为了避免重复.ArrayList可出现重复值
     private static final HashMap<Module, HashSet<UUID>> TASKS = new HashMap<>();  //使用HashSet是为了避免重复.ArrayList可出现重复值
+    private final File configFolder = new File(Main.INSTANCE.getConfigFolder(), getName());
     private final File dataFolder = new File(Main.INSTANCE.getDataFolder(), getName());
     protected boolean DEFAULT_DISABLED = false;
 
     protected Module() {
-        Main.LOGGER.info("正在加载 " + getName() + " 模块");
+        getLogger().info("正在加载 " + getName() + " 模块");
 
         ValueUtil.mustTrue("模块名不应为空", !getName().trim().isEmpty());
         ValueUtil.mustTrue("已存在使用该名称的模块，不允许重复注册", LOADED_MODELS.get(getName()) == null);
@@ -101,14 +102,19 @@ public abstract class Module {
 
     @NotNull
     public static <M extends Module> M getModule(Class<M> clazz) {
-        return getModule(clazz.getSimpleName());
-        //
+        if (clazz == null) throw new IllegalArgumentException("参数为null");
+        if (!clazz.isAssignableFrom(Module.class)) throw new IllegalArgumentException("参数不是Module的子类");
+        if (clazz.equals(Module.class)) throw new IllegalArgumentException("参数不能是Module类本身");
+        M module = getModule(clazz.getSimpleName());
+        assert module != null;
+        return module;
     }
 
     public abstract void register() throws Throwable;
 
     public final <C extends Contact> void registerCommand(Class<C> contactType, CommandExecutor<C> exec, String... aliases) {
         for (String s : aliases) {
+            if (s == null) throw new IllegalArgumentException("注册命令怎么会混进来一个null？");
             if (s.contains(" ")) {
                 throw new IllegalArgumentException("注册的命令不应包含空格，应作为参数判断");
             }
@@ -148,6 +154,16 @@ public abstract class Module {
         //
     }
 
+    public final <T> T debug(T obj) {
+        getLogger().debug("[" + getName() + "] " + obj);
+        return obj;
+    }
+
+    public final void debug(Throwable e) {
+        getLogger().debug("[" + getName() + "]", e);
+        //
+    }
+
     @SuppressWarnings("unchecked")
     public final <C extends Contact> C getRealSender(MessageEvent event) {
         return (C) MsgUtil.getRealSender(event);
@@ -168,12 +184,21 @@ public abstract class Module {
 
     public final void runTaskLater(TryRunnable r, long seconds) {
         new Thread(() -> {
+            UUID uuid = UUID.randomUUID();
+            TASKS.get(this).add(uuid);
             if (seconds > 0L) {
                 try {
                     Thread.sleep(seconds * 1000L);
                 } catch (InterruptedException e) {
                     return;
                 }
+            }
+
+            if (!TASKS.get(this).contains(uuid)) {
+                return;
+            }
+            if (isDisabled()) {
+                return;
             }
 
             try {
@@ -271,7 +296,7 @@ public abstract class Module {
         getBot().getFriend(Util.OWNER_ID).sendMessage(msg);
     }
 
-    public final MiraiLogger getLogger() {
+    private final MiraiLogger getLogger() {
         return Main.LOGGER;
         //
     }
@@ -297,6 +322,14 @@ public abstract class Module {
         }
         ValueUtil.mustTrue("该位置已有同名文件，且非文件夹！", dataFolder.isDirectory());
         return dataFolder;
+    }
+
+    public File getConfigFolder() {
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        ValueUtil.mustTrue("该位置已有同名文件，且非文件夹！", configFolder.isDirectory());
+        return configFolder;
     }
 
     public <E extends Event> void executeOnce(Class<E> eventType, TryConsumer<E> executor) {

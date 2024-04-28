@@ -11,7 +11,6 @@ import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.ForwardMessageBuilder;
 import net.mamoe.mirai.message.data.Message;
-import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.utils.ExternalResource;
 
@@ -30,7 +29,7 @@ public class MsgUtil {
         //
     }
 
-    public static String getPlainText(MessageChain msg) {
+    public static String getPlainText(Message msg) {
         if (msg == null) return "";
 
         return msg.contentToString();
@@ -72,11 +71,11 @@ public class MsgUtil {
         if (contact == null || msg == null) {
             return;
         }
-        if (contact instanceof Group) {
-            if (((Group) contact).getSettings().isMuteAll() && ((Group) contact).getBotPermission() == MemberPermission.MEMBER) {
+        if (contact instanceof Group group) {
+            if (group.getSettings().isMuteAll() && group.getBotPermission() == MemberPermission.MEMBER) {
                 return;
             }
-            if (((Group) contact).getBotAsMember().isMuted()) {
+            if (group.getBotAsMember().isMuted()) {
                 return;
             }
         }

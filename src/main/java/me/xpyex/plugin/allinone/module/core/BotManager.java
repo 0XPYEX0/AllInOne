@@ -4,20 +4,23 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import me.xpyex.plugin.allinone.api.CommandMenu;
 import me.xpyex.plugin.allinone.api.MessageBuilder;
+import me.xpyex.plugin.allinone.core.command.argument.ArgParser;
+import me.xpyex.plugin.allinone.core.command.argument.GroupParser;
 import me.xpyex.plugin.allinone.core.module.CoreModule;
-import me.xpyex.plugin.allinone.utils.MsgUtil;
 import me.xpyex.plugin.allinone.utils.StringUtil;
 import me.xpyex.plugin.allinone.utils.Util;
 import net.mamoe.mirai.console.MiraiConsole;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.Friend;
 import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.event.Event;
 import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent;
 import net.mamoe.mirai.event.events.GroupEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.event.events.NewFriendRequestEvent;
 import net.mamoe.mirai.event.events.NudgeEvent;
+import net.mamoe.mirai.event.events.UserEvent;
 
 @SuppressWarnings("unused")
 public class BotManager extends CoreModule {
@@ -28,17 +31,18 @@ public class BotManager extends CoreModule {
     public void register() {
         registerCommand(Contact.class, ((source, sender, label, args) -> {
             if (!sender.hasPerm(getName() + ".use")) {
-                MsgUtil.sendMsg(source, "你没有权限");
+                source.sendMessage("你没有权限");
                 return;
             }
 
 
             if (args.length == 0) {  //根帮助
-                CommandMenu menu = new CommandMenu(label)
-                                       .add("group", "群相关操作")
-                                       .add("friend", "好友相关操作")
-                                       .add("user", "用户相关操作");
-                menu.send(source);
+                new CommandMenu(label)
+                    .add("group", "群相关操作")
+                    .add("friend", "好友相关操作")
+                    .add("user", "用户相关操作")
+                    .add("end|exit|shutdown|stop", "关闭Bot，自动重启")
+                    .send(source);
                 return;
             }
 
@@ -54,7 +58,7 @@ public class BotManager extends CoreModule {
                 }
                 if (args.length == 2) {
                     if (StringUtil.equalsIgnoreCaseOr(args[1], "quit", "ignore")) {
-                        MsgUtil.sendMsg(source, "参数不足，请填写ID");
+                        source.sendMessage("参数不足，请填写ID");
                         return;
                     }
                     if (args[1].equalsIgnoreCase("list")) {
@@ -67,39 +71,27 @@ public class BotManager extends CoreModule {
                         return;
                     }
                 }
-                Group group;
-                try {
-                    long id;
-                    if (args[2].equalsIgnoreCase("this")) {
-                        if (source.isGroup()) {
-                            id = source.getContact().getId();
-                        } else {
-                            MsgUtil.sendMsg(source, "该命令不在群内执行，不可使用this替代符");
-                            return;
-                        }
-                    } else {
-                        id = Long.parseLong(args[2]);
-                    }
-                    group = Util.getBot().getGroupOrFail(id);
-                } catch (NumberFormatException ignored) {
-                    MsgUtil.sendMsg(source, "填入的群号非整数");
-                    return;
-                } catch (NoSuchElementException ignored) {
-                    MsgUtil.sendMsg(source, "机器人并未进入指定群，无法操作");
-                    return;
-                }
-                if (args[1].equalsIgnoreCase("quit")) {
-                    MsgUtil.sendMsg(source, "执行操作: 退出群 " + group.getId());
-                    group.quit();
-                    return;
-                }
-                if (args[1].equalsIgnoreCase("ignore")) {
-                    MsgUtil.sendMsg(source, "执行操作: 忽略群 " + group.getId());
-                    IGNORED_LIST.add("Group-" + group.getId());
-                    return;
-                }
+                ArgParser.of(GroupParser.class).parse(() -> args[2], Group.class)
+                    .ifPresentOrElse(group -> {
+                            if (args[1].equalsIgnoreCase("quit")) {
+                                source.sendMessage("执行操作: 退出群 " + group.getId());
+                                group.quit();
+                                return;
+                            }
+                            if (args[1].equalsIgnoreCase("ignore")) {
+                                source.sendMessage("执行操作: 忽略群 " + group.getId());
+                                IGNORED_LIST.add("Group-" + group.getId());
+                                return;
+                            }
+                        }, () ->
+                               new MessageBuilder()
+                                   .plus("群不存在")
+                                   .plus("原因可能是: ")
+                                   .plus("①群不存在，即群号输入有误")
+                                   .plus("②Bot不在指定群内")
+                                   .send(source)
+                    );
             }
-
 
             if (args[0].equalsIgnoreCase("friend")) {  //好友相关
                 if (args.length == 1) {
@@ -111,7 +103,7 @@ public class BotManager extends CoreModule {
                 }
                 if (args.length == 2) {
                     if (StringUtil.equalsIgnoreCaseOr(args[1], "del", "delete", "accept", "deny")) {
-                        MsgUtil.sendMsg(source, "参数不足，请填写ID");
+                        source.sendMessage("参数不足，请填写ID");
                         return;
                     }
                     if (args[1].equalsIgnoreCase("list")) {
@@ -127,7 +119,7 @@ public class BotManager extends CoreModule {
                 if (StringUtil.equalsIgnoreCaseOr(args[1], "accept", "deny")) {
                     try {
                         NewFriendRequestEvent event = REQUESTS.get(Integer.parseInt(args[2]));
-                        if (StringUtil.equalsIgnoreCaseOr(args[1], "accept")) {
+                        if ("accept".equalsIgnoreCase(args[1])) {
                             event.accept();
                         } else {
                             event.reject(false);
@@ -148,23 +140,23 @@ public class BotManager extends CoreModule {
                 try {
                     friend = Util.getBot().getFriendOrFail(Long.parseLong(args[2]));
                 } catch (NumberFormatException ignored) {
-                    MsgUtil.sendMsg(source, "填入的QQ号非整数");
+                    source.sendMessage("填入的QQ号非整数");
                     return;
                 } catch (NoSuchElementException ignored) {
-                    MsgUtil.sendMsg(source, "机器人并非指定QQ的好友，无法操作");
+                    source.sendMessage("机器人并非指定QQ的好友，无法操作");
                     return;
                 }
                 if (StringUtil.equalsIgnoreCaseOr(args[1], "del", "delete")) {
-                    if (PermManager.hasPerm(friend, "BotManager.admin")) {
-                        MsgUtil.sendMsg(source, "不允许删除该好友");
+                    //
+                    if (PermManager.hasPerm(friend, "BotManager.admin", null)) {
+                        source.sendMessage("不允许删除该好友");
                         return;
                     }
-                    MsgUtil.sendMsg(source, "执行操作: 删除好友 " + friend.getId());
+                    source.sendMessage("执行操作: 删除好友 " + friend.getId());
                     friend.delete();
                     return;
                 }
             }
-
 
             if (args[0].equalsIgnoreCase("user")) {  //用户相关
                 if (args.length == 1) {
@@ -175,7 +167,7 @@ public class BotManager extends CoreModule {
                 }
                 if (args.length == 2) {
                     if (args[1].equalsIgnoreCase("ignore")) {
-                        MsgUtil.sendMsg(source, "参数不足，请填写ID");
+                        source.sendMessage("参数不足，请填写ID");
                         return;
                     }
                 }
@@ -183,33 +175,37 @@ public class BotManager extends CoreModule {
                     long id = Long.parseLong(args[2]);
                     if (args[1].equalsIgnoreCase("ignore")) {
                         if (id == Util.OWNER_ID) {
-                            MsgUtil.sendMsg(source, "不允许屏蔽该用户");
+                            source.sendMessage("不允许屏蔽该用户");
                             return;
                         }
-                        MsgUtil.sendMsg(source, "执行操作: 忽略用户 " + id);
+                        source.sendMessage("执行操作: 忽略用户 " + id);
                         IGNORED_LIST.add("User-" + id);
                         return;
                     }
                 } catch (NumberFormatException ignored) {
-                    MsgUtil.sendMsg(source, "填入的QQ号非整数");
+                    source.sendMessage("填入的QQ号非整数");
                     return;
                 }
             }
 
-            if ("shutdown".equalsIgnoreCase(args[0])) {
+            if (StringUtil.equalsIgnoreCaseOr(args[0], "shutdown", "exit", "stop", "end")) {
                 source.sendMessage("开始重启");
                 MiraiConsole.shutdown();
                 return;
             }
 
-
-            MsgUtil.sendMsg(source, "未知子命令，请执行 #" + label + " 查看帮助");
+            source.sendMessage("未知子命令，请执行 #" + label + " 查看帮助");
         }), "BotManager", "Bot");
+
         listenEvent(BotInvitedJoinGroupRequestEvent.class, event -> {
-            if (event.getInvitorId() == Util.OWNER_ID) {
+            User user = event.getInvitor();
+            String perm = getName() + ".invite";
+            //
+            if (PermManager.hasPerm(user, perm, null)) {
                 event.accept();
             }
         });
+
         listenEvent(NewFriendRequestEvent.class, event -> {
             REQUESTS.add(event);
             new MessageBuilder()
@@ -225,9 +221,11 @@ public class BotManager extends CoreModule {
     }
 
     @Override
-    @SuppressWarnings("all")
     public boolean acceptEvent(Event event) {
         if (event instanceof GroupEvent && IGNORED_LIST.contains("Group-" + ((GroupEvent) event).getGroup().getId()))
+            return false;
+
+        if (event instanceof UserEvent && IGNORED_LIST.contains("User-" + ((UserEvent) event).getUser().getId()))
             return false;
 
         if (event instanceof MessageEvent && IGNORED_LIST.contains("User-" + ((MessageEvent) event).getSender().getId()))
